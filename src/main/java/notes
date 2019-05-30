@@ -1,0 +1,16 @@
+Actors:
+
+Actors as objects which encapsulate state and behaviour, they communicated exclusively by exchanging messages which are
+placed into the recipients mailbox.
+
+An actor class is implemented by extending the AbstractActor class and setting the type of messages accepted and how to
+process them.
+
+Actor System:
+Hierarchy of actors, manager supervising the child, passing on sub-task and handling failure.
+On a failure case the supervisor has the following options:
+1. Resume de subordinate, keeping its accumulated internal state
+2. Restart the subordinate, clearing out its accumulated internal state
+3. Stop the subordinate permanently
+4. Escalate the failure, thereby failing itself
+

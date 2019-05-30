@@ -5,7 +5,6 @@ import akka.actor.Props;
 import akka.actor.ReceiveTimeout;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-import bankaccount.domain.Deposit;
 import bankaccount.domain.Transaction;
 
 import java.time.Duration;
@@ -28,22 +27,34 @@ Whenever you're sending data through nodes, you need to serialize data. Proto bu
 
 Thread pool - dispatchers. 1 for akka system, 1 for the cluster (gossip to keep the cluster), one for actors
 
+Look at recovery strategies
+
+Tip: Do clustering at the beginning
+
+Check out: Actor Manifesto
+
+Do not store the class in the database during persistence, use a translation
+
+Stream
+
+sink = completion
+
  */
 public class Account extends AbstractActor {
 
     private LoggingAdapter log = Logging.getLogger(getContext().getSystem(), this);
 
-    static public Props props(String accountNo) { //creates an instance of an actor
+    static public Props props(Long accountNo) { //creates an instance of an actor
         return Props.create(Account.class, accountNo);
     }
 
     private List<Transaction> transactionsList = new ArrayList<>();
 
-    private String accountNo;
+    private Long accountNo;
     private Double balance;
     private int seqNo;
 
-    public Account(String accountNo) {
+    public Account(Long accountNo) {
         this.accountNo = accountNo;
         this.balance = 100.0;
         this.seqNo = 0;
@@ -72,7 +83,7 @@ public class Account extends AbstractActor {
 
     private void transactionMade(Transaction d) {
         seqNo++;
-        log.info(d.getLog(accountNo));
+        log.info(d.getLog());
         transactionsList.add(d);
         balance = d.calculateBalance(balance);
         log.info("seqNo = " + seqNo +" new balance = " + balance);

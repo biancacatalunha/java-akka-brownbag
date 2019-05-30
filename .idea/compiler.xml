@@ -6,7 +6,9 @@
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
+        <module name="java-akka" />
         <module name="brownbag" />
+        <module name="java-akka-brownbag" />
       </profile>
     </annotationProcessing>
   </component>

@@ -2,14 +2,13 @@ package bankaccount.domain;
 
 public class Withdraw extends Transaction {
 
-    public Withdraw(Double amount) {
-        super(amount);
+    public Withdraw(Double amount, Long accountNo) {
+        super(amount, accountNo);
     }
 
-
     @Override
-    public String getLog(String accountNo) {
-        return "Account number: " + accountNo + " -> Withdraw made of " + this.getAmount();
+    public String getLog() {
+        return "Account number: " + this.getAccountNo() + " -> Withdraw made of " + this.getAmount();
     }
 
     @Override

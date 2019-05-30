@@ -2,13 +2,13 @@ package bankaccount.domain;
 
 public class Deposit extends Transaction {
 
-    public Deposit(Double amount) {
-        super(amount);
+    public Deposit(Double amount, Long accountNo) {
+        super(amount, accountNo);
     }
 
     @Override
-    public String getLog(String accountNo) {
-        return "Account number: " + accountNo + " -> Deposit made of " + this.getAmount();
+    public String getLog() {
+        return "Account number: " + this.getAccountNo() + " -> Deposit made of " + this.getAmount();
     }
 
     @Override
