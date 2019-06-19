@@ -1,25 +1,22 @@
 package bankaccount.domain;
 
-public abstract class Transaction {
+import lombok.Data;
 
+import java.io.Serializable;
+
+@Data
+public abstract class Transaction implements Serializable {
+
+    private static final long serialVersionUID = 3118106768699356719L;
     private Double amount;
     private Long accountNo;
+    private String transactionMadeBy;
+    private Long transactionDate;
 
-    Transaction(Double amount, long accountNo) {
+    public Transaction(Double amount, long accountNo, String transactionMadeBy, Long transactionDate) {
         this.amount = amount;
         this.accountNo = accountNo;
+        this.transactionMadeBy = transactionMadeBy;
+        this.transactionDate = transactionDate;
     }
-
-    public Double getAmount() {
-        return this.amount;
-    }
-
-    public Long getAccountNo() {
-        return this.accountNo;
-    }
-
-    public abstract String getLog();
-
-    public abstract Double calculateBalance(Double balance);
-
 }

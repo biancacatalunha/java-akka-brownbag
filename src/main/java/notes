@@ -14,3 +14,19 @@ On a failure case the supervisor has the following options:
 3. Stop the subordinate permanently
 4. Escalate the failure, thereby failing itself
 
+Persistence:
+
+AbstractPersistentActor: Is a persistent, stateful actor. It is able to persist events to a journal and can react to them
+in a thread-safe manner. It can be used to implement both command as well as event sourced actors. When a persistent actor
+is started or restarted, journaled messages are replayed to that actor so that it can recover its state from these messages.
+
+Snapshot store: A snapshot store persists snapshots of a persistent actor’s state. Snapshots are used for optimizing
+recovery times. The storage backend of a snapshot store is pluggable. The persistence extension comes with a “local”
+snapshot storage plugin, which writes to the local filesystem
+
+Event Sourcing:
+https://docs.microsoft.com/en-us/previous-versions/msp-n-p/jj591559(v=pandp.10)
+
+An event is something that happened in the past, e.g "Alice booked seat 23A". Events are immutable.
+Event sourcing is based on storing a record of events that happened, allowing us to reconstruct the state of an object at
+any time.

@@ -8,33 +8,19 @@ import akka.cluster.sharding.ShardRegion;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.persistence.AbstractPersistentActor;
+import akka.persistence.RecoveryCompleted;
 import akka.persistence.SaveSnapshotSuccess;
 import akka.persistence.SnapshotOffer;
-import bankaccount.domain.Transaction;
+import bankaccount.domain.*;
 
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.List;
 
 public class PersistentCurrentAccount extends AbstractPersistentActor {
+
     private LoggingAdapter log = Logging.getLogger(getContext().getSystem(), this);
-
-    private List<Transaction> transactionsList = new ArrayList<>();
-
-    private String accountNo;
-    private Double balance;
-    private int noMessagesSinceLastSnapshot;
-
-    //Props is a configuration class to specify options for the creation of actors
-    static public Props props(Long accountNo) { //creates an instance of an actor
-        return Props.create(Account.class, accountNo);
-    }
-
-    public PersistentCurrentAccount(String accountNo) {
-        this.accountNo = accountNo;
-        this.balance = 100.0;
-        this.noMessagesSinceLastSnapshot = 0;
-    }
+    private int noMessagesSinceLastSnapshot = 0;
+    private AccountState accountState = new AccountState(new ArrayList<>(), 0.0, Long.valueOf(getId()));
 
     private String getId() {
         return self().path().name();
@@ -79,53 +65,71 @@ public class PersistentCurrentAccount extends AbstractPersistentActor {
 
     @Override
     public void postStop() {
-        log.info("Account " + accountNo + " stopped");
-    }
-
-    @Override
-    public void aroundPostStop() {
         log.info("Persistence Current Account : " + getId() + " [stopped]");
-        super.aroundPostStop();
     }
 
     @Override
     public Receive createReceiveRecover() {
         return receiveBuilder()
-                .match(Transaction.class, this::transactionMade)
+                .match(Transaction.class, this::applyTransaction)
                 .match(SnapshotOffer.class, this::applySnapshot)
+                .match(RecoveryCompleted.class, (RecoveryCompleted c) -> {
+                    logBalance();
+                    getContext().setReceiveTimeout(Duration.ofSeconds(4));
+                })
                 .build();
     }
 
     private void applySnapshot(SnapshotOffer snapshotOffer) {
+        if(snapshotOffer.snapshot() instanceof AccountState) {
+            log.info("Applying snapshot");
+            accountState = (AccountState) snapshotOffer.snapshot();
+        }
     }
 
-    //Mandatory method to define the type of messages accepted and how to process them
+    //Mandatory method to define the type of messages accepted and how to process them COMMANDS
     @Override
     public AbstractActor.Receive createReceive() {
         return receiveBuilder()
-                .match(Transaction.class, this::transactionMade)
+                .match(Deposit.class, d -> {
+                    final Deposited deposited = new Deposited(d.getAmount(), d.getAccountNo(), d.getTransactionMadeBy(), d.getTransactionDate());
+                    persist(deposited, this::applyTransaction);
+                    //When persisting events with persist it is guaranteed that the persistent actor will not receive
+                    //further commands between the persist call and the execution(s) of the associated event handler.
+                })
+                .match(Withdraw.class, w -> {
+                    final Withdrawn withdrawn = new Withdrawn(w.getAmount(), w.getAccountNo(), w.getTransactionMadeBy(), w.getTransactionDate());
+                    persist(withdrawn, this::applyTransaction);
+                })
                 //in clustering we should use passivation
-                .match(ReceiveTimeout.class, rt -> getContext().stop(this.getSelf()))//this will stop the actor
+                .match(ReceiveTimeout.class, r -> {
+                    log.info("Persistent Current Account : " + getId() + " - ReceiveTimeout");
+                    getContext().getParent().tell(new ShardRegion.Passivate(PoisonPill.getInstance()), getSelf());
+                })
                 .match(SaveSnapshotSuccess.class, ss -> noMessagesSinceLastSnapshot = 0)
                 .match(PoisonPill.class, pp -> getContext().stop(getSelf()))
                 .build();
     }
 
-    private void transactionMade(Transaction d) {
+    private void applyTransaction(Transaction transaction) {
         noMessagesSinceLastSnapshot ++;
 
-        if(noMessagesSinceLastSnapshot == 5) {
-            saveSnapshot("accountNo: " + accountNo + ", balance:" + balance);
-        }
+        accountState.apply(transaction);
+        log.info("Account number: " + transaction.getAccountNo() + " -> " + transaction.getAmount() + " " + transaction.getClass().getSimpleName());
+        logBalance();
 
-        log.info(d.getLog());
-        transactionsList.add(d);
-        balance = d.calculateBalance(balance);
-        log.info("Persistent ID = " + getId() + " seqNo = " + noMessagesSinceLastSnapshot +" new balance = " + balance);
+        if(noMessagesSinceLastSnapshot >= 5) {
+            log.info("Saving snapshot");
+            saveSnapshot(accountState);
+        }
     }
 
     @Override
     public String persistenceId() {
         return "PersistentCurrentAccount-" + self().path().name();
+    }
+
+    private void logBalance() {
+        log.info("Persistent ID = " + getId() + " seqNo = " + noMessagesSinceLastSnapshot +" new balance = " + accountState.getBalance());
     }
 }
