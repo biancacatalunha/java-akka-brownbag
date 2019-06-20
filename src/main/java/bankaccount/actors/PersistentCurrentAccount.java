@@ -2,7 +2,6 @@ package bankaccount.actors;
 
 import akka.actor.AbstractActor;
 import akka.actor.PoisonPill;
-import akka.actor.Props;
 import akka.actor.ReceiveTimeout;
 import akka.cluster.sharding.ShardRegion;
 import akka.event.Logging;
