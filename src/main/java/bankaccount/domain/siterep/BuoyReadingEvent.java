@@ -1,4 +1,11 @@
 package bankaccount.domain.siterep;
 
-public class BuoyReadingEvent extends SiteRep {
+
+import lombok.AllArgsConstructor;
+
+public class BuoyReadingEvent extends BuoyReading {
+
+    public BuoyReadingEvent(SiteRep siteRep) {
+        super(siteRep);
+    }
 }

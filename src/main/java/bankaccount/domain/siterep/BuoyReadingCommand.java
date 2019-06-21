@@ -1,4 +1,5 @@
 package bankaccount.domain.siterep;
 
-public class BuoyReadingCommand extends BuoyReading{
+public class BuoyReadingCommand extends BuoyReading {
+
 }

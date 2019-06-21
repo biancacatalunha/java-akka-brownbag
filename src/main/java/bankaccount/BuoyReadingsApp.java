@@ -7,6 +7,7 @@ import akka.cluster.sharding.ClusterSharding;
 import akka.cluster.sharding.ClusterShardingSettings;
 import bankaccount.actors.BuoyReadingActor;
 import bankaccount.domain.siterep.BuoyReading;
+import bankaccount.domain.siterep.BuoyReadingCommand;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -48,7 +49,7 @@ public class BuoyReadingsApp {
                 .join();
 
         try {
-            BuoyReading buoyReading = mapper.readValue(siteRepString, BuoyReading.class);
+            BuoyReadingCommand buoyReading = mapper.readValue(siteRepString, BuoyReadingCommand.class);
             buoyReadingActorRegion.tell(buoyReading, ActorRef.noSender());
         } catch (Exception e) {
             System.out.print("Unable to convert json to object" +  e);
