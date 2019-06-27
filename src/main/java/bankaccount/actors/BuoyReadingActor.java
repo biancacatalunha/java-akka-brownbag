@@ -80,6 +80,7 @@ public class BuoyReadingActor extends AbstractPersistentActor {
                 .match(BuoyReadingCommand.class, s -> {
                     final BuoyReadingEvent  buoyReadingEvent = s.toEvent();
                     persist(buoyReadingEvent, this::applyReading);
+                    log.info("Persisting reading " + buoyReadingEvent.getSiteRep().getDV().getDataDate());
                 })
                 .match(ReceiveTimeout.class, r -> {
                     log.info("Buoy Reading: " + getId() + " - ReceiveTimeout");

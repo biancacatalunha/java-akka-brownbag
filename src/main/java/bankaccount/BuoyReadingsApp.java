@@ -6,7 +6,8 @@ import akka.actor.Props;
 import akka.cluster.sharding.ClusterSharding;
 import akka.cluster.sharding.ClusterShardingSettings;
 import bankaccount.actors.BuoyReadingActor;
-import bankaccount.domain.siterep.BuoyReading;
+import bankaccount.domain.siterep.BuoyConfig;
+import bankaccount.domain.siterep.BuoyConfigObject;
 import bankaccount.domain.siterep.BuoyReadingCommand;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -19,9 +20,6 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 
 public class BuoyReadingsApp {
-//    Map(Name -> LocationId)
-//    Map("Gascoigne" -> "162001", "K1" -> "162029", "K7" -> "164046", "Brittany" -> "162163")
-    //http://datapoint.metoffice.gov.uk/public/data/val/wxmarineobs/all/json/162001?res=daily&key=62d4967f-7932-4e40-805c-e5ace42531ee
 
     public static void main(String[] args){
 
@@ -33,27 +31,31 @@ public class BuoyReadingsApp {
                         settings,
                         BuoyReadingActor.shardRegionMessageExtractor);
 
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
-
         HttpClient client = HttpClient.newBuilder()
                 .proxy(ProxySelector.of(new InetSocketAddress("hqproxy.corp.ppbplc.com", 8080)))
                 .build();
 
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("http://datapoint.metoffice.gov.uk/public/data/val/wxmarineobs/all/json/162001?res=daily&key=62d4967f-7932-4e40-805c-e5ace42531ee"))
-                .build();
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
 
-        String siteRepString = client.sendAsync(request, HttpResponse.BodyHandlers.ofString())
-                .thenApply(HttpResponse::body)
-                .join();
+        BuoyConfig buoyConfig = new BuoyConfig();
 
-        try {
-            BuoyReadingCommand buoyReading = mapper.readValue(siteRepString, BuoyReadingCommand.class);
-            buoyReadingActorRegion.tell(buoyReading, ActorRef.noSender());
-        } catch (Exception e) {
-            System.out.print("Unable to convert json to object" +  e);
-        }
+        BuoyConfigObject config = buoyConfig.getConfig();
+        config.getLocation().forEach(k -> {
+
+            URI url = URI.create("http://datapoint.metoffice.gov.uk/public/data/val/wxmarineobs/all/json/" + k.getI() + "?res=daily&key=" + config.getKey());
+            HttpRequest request = HttpRequest.newBuilder().uri(url).build();
+
+            String siteRepString = client.sendAsync(request, HttpResponse.BodyHandlers.ofString())
+                    .thenApply(HttpResponse::body)
+                    .join();
+
+            try {
+                BuoyReadingCommand buoyReading = mapper.readValue(siteRepString, BuoyReadingCommand.class);
+                buoyReadingActorRegion.tell(buoyReading, ActorRef.noSender());
+            } catch (Exception e) {
+                System.out.print("Unable to convert json to object" +  e);
+            }
+        });
     }
-
 }
